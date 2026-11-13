@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertCircle,
@@ -27,6 +27,15 @@ import {
   type ReadingProfile,
 } from "@/lib/reading-profile";
 import { getAdaptiveSuggestion } from "@/lib/adaptive-controller";
+import {
+  createDistanceValidationTrial,
+  getDistanceValidationSummary,
+  isDistanceValidationTrial,
+  DISTANCE_VALIDATION_STORAGE_KEY,
+  VALIDATION_CONDITIONS,
+  type DistanceValidationTrial,
+  type ValidationCondition,
+} from "@/lib/distance-validation";
 import Link from "next/link";
 import {
   estimateDistanceCm,
@@ -154,6 +163,10 @@ export function VisionMonitorClient() {
   const [referenceDistanceInput, setReferenceDistanceInput] = useState("55");
   const [profileStatus, setProfileStatus] = useState("Not calibrated");
   const [distanceEstimate, setDistanceEstimate] = useState<number | null>(null);
+  const [validationTrials, setValidationTrials] = useState<DistanceValidationTrial[]>([]);
+  const [measuredDistanceInput, setMeasuredDistanceInput] = useState("55");
+  const [validationCondition, setValidationCondition] = useState<ValidationCondition>("Typical room light");
+  const [validationStatus, setValidationStatus] = useState("No measurements recorded");
   const [readingProfile, setReadingProfile] = useState<ReadingProfile>(DEFAULT_READING_PROFILE);
 
   useEffect(() => {
@@ -176,6 +189,22 @@ export function VisionMonitorClient() {
 
     window.addEventListener("storage", handleProfileStorage);
     return () => window.removeEventListener("storage", handleProfileStorage);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const savedTrials = window.localStorage.getItem(DISTANCE_VALIDATION_STORAGE_KEY);
+      if (savedTrials) {
+        const parsed: unknown = JSON.parse(savedTrials);
+        if (Array.isArray(parsed)) {
+          const validTrials = parsed.filter(isDistanceValidationTrial).slice(0, 100);
+          setValidationTrials(validTrials);
+          setValidationStatus(validTrials.length ? `${validTrials.length} local measurements saved` : "No valid measurements found");
+        }
+      }
+    } catch {
+      setValidationStatus("Local validation history unavailable");
+    }
   }, []);
 
   useEffect(() => {
@@ -457,6 +486,59 @@ export function VisionMonitorClient() {
     }
   }, [calibration, distanceEstimate, readingProfile, snapshot]);
 
+  const validationSummary = useMemo(
+    () => getDistanceValidationSummary(validationTrials),
+    [validationTrials],
+  );
+
+  const canRecordValidation =
+    cameraState === "active" &&
+    distanceEstimate !== null &&
+    snapshot !== null &&
+    snapshot.framing === "Centered" &&
+    snapshot.headTurn === "Facing camera" &&
+    snapshot.headTilt === "Level";
+
+  const recordValidationTrial = useCallback(() => {
+    const measuredDistanceCm = Number(measuredDistanceInput);
+    if (!canRecordValidation || distanceEstimate === null) {
+      setValidationStatus("Center your face and wait for a stable calibrated distance first");
+      return;
+    }
+
+    const trial = createDistanceValidationTrial({
+      id: window.crypto?.randomUUID?.() ?? String(Date.now()),
+      recordedAt: new Date().toISOString(),
+      condition: validationCondition,
+      measuredDistanceCm,
+      estimatedDistanceCm: distanceEstimate,
+    });
+
+    if (!trial) {
+      setValidationStatus("Enter a measured distance from 20 to 150 cm");
+      return;
+    }
+
+    const nextTrials = [trial, ...validationTrials].slice(0, 100);
+    try {
+      window.localStorage.setItem(DISTANCE_VALIDATION_STORAGE_KEY, JSON.stringify(nextTrials));
+      setValidationTrials(nextTrials);
+      setValidationStatus(`Measurement saved · absolute error ${trial.absoluteErrorCm.toFixed(1)} cm`);
+    } catch {
+      setValidationStatus("Could not save this measurement in browser storage");
+    }
+  }, [canRecordValidation, distanceEstimate, measuredDistanceInput, validationCondition, validationTrials]);
+
+  const clearValidationTrials = useCallback(() => {
+    try {
+      window.localStorage.removeItem(DISTANCE_VALIDATION_STORAGE_KEY);
+      setValidationTrials([]);
+      setValidationStatus("Measurement history cleared");
+    } catch {
+      setValidationStatus("Could not clear local measurement history");
+    }
+  }, []);
+
   const adaptiveSuggestion = distanceEstimate === null
     ? null
     : getAdaptiveSuggestion(distanceEstimate, calibration, readingProfile, snapshot);
@@ -613,6 +695,115 @@ export function VisionMonitorClient() {
               <div className="text-[11px] text-zinc-500">{calibration ? `Reference: ${calibration.referenceDistanceCm} cm` : "No reference saved"}</div>
               <button type="button" onClick={clearCalibration} disabled={!calibration} className="text-[11px] text-zinc-400 underline decoration-white/20 underline-offset-4 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35">Clear calibration</button>
             </div>
+          </section>
+
+          <section className="panel rounded-3xl p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold">Real-world distance validation</h2>
+                <p className="mt-1 text-[11px] text-zinc-500">Compare AEB estimates with a ruler measurement</p>
+              </div>
+              <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] text-zinc-500">LOCAL ONLY</span>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-zinc-400">
+              Measure from the webcam lens to your face. Record a trial at different distances while keeping your face centered, front-facing and level.
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="measured-validation-distance" className="block text-[11px] text-zinc-400">Actual measured distance (cm)</label>
+                <input
+                  id="measured-validation-distance"
+                  type="number"
+                  min={20}
+                  max={150}
+                  step={1}
+                  value={measuredDistanceInput}
+                  onChange={(event) => setMeasuredDistanceInput(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-[#0a0b11] px-3 py-2.5 text-sm text-white outline-none focus:border-violet/60"
+                />
+              </div>
+              <div>
+                <label htmlFor="validation-condition" className="block text-[11px] text-zinc-400">Test condition</label>
+                <select
+                  id="validation-condition"
+                  value={validationCondition}
+                  onChange={(event) => setValidationCondition(event.target.value as ValidationCondition)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-[#0a0b11] px-3 py-2.5 text-sm text-white outline-none focus:border-violet/60"
+                >
+                  {VALIDATION_CONDITIONS.map((condition) => <option key={condition} value={condition}>{condition}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-white/[.025] p-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[.15em] text-zinc-500">Current AEB estimate</div>
+                <div className="mt-1 text-lg font-semibold">{distanceEstimate !== null ? `~${distanceEstimate.toFixed(1)} cm` : "Waiting for calibrated estimate"}</div>
+              </div>
+              <button
+                type="button"
+                onClick={recordValidationTrial}
+                disabled={!canRecordValidation}
+                className="rounded-xl bg-violet px-4 py-2.5 text-xs font-semibold text-[#100d1c] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Save measurement
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] text-zinc-500" aria-live="polite">{validationStatus}</p>
+
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-xl bg-white/[.035] p-3">
+                <div className="text-[10px] text-zinc-500">Trials</div>
+                <div className="mt-1 text-lg font-semibold">{validationSummary.count}</div>
+              </div>
+              <div className="rounded-xl bg-white/[.035] p-3">
+                <div className="text-[10px] text-zinc-500">Mean absolute error</div>
+                <div className="mt-1 text-lg font-semibold">{validationSummary.meanAbsoluteErrorCm === null ? "—" : `${validationSummary.meanAbsoluteErrorCm.toFixed(1)} cm`}</div>
+              </div>
+              <div className="rounded-xl bg-white/[.035] p-3">
+                <div className="text-[10px] text-zinc-500">Mean % error</div>
+                <div className="mt-1 text-lg font-semibold">{validationSummary.meanAbsolutePercentageError === null ? "—" : `${validationSummary.meanAbsolutePercentageError.toFixed(1)}%`}</div>
+              </div>
+              <div className="rounded-xl bg-white/[.035] p-3">
+                <div className="text-[10px] text-zinc-500">Within 10%</div>
+                <div className="mt-1 text-lg font-semibold">{validationSummary.withinTenPercentPercent === null ? "—" : `${validationSummary.withinTenPercentPercent.toFixed(0)}%`}</div>
+              </div>
+            </div>
+
+            {validationTrials.length > 0 && (
+              <div className="mt-5">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="text-xs font-medium text-zinc-300">Recent measurements</div>
+                  <button type="button" onClick={clearValidationTrials} className="text-[10px] text-zinc-500 underline underline-offset-4 hover:text-white">Clear history</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-left text-[11px]">
+                    <thead className="text-zinc-500">
+                      <tr>
+                        <th className="pb-2 pr-3 font-medium">Condition</th>
+                        <th className="pb-2 pr-3 font-medium">Actual</th>
+                        <th className="pb-2 pr-3 font-medium">AEB</th>
+                        <th className="pb-2 font-medium">Abs. error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {validationTrials.slice(0, 6).map((trial) => (
+                        <tr key={trial.id} className="border-t border-white/[.06] text-zinc-300">
+                          <td className="py-2 pr-3 text-zinc-400">{trial.condition}</td>
+                          <td className="py-2 pr-3 tabular-nums">{trial.measuredDistanceCm.toFixed(1)} cm</td>
+                          <td className="py-2 pr-3 tabular-nums">{trial.estimatedDistanceCm.toFixed(1)} cm</td>
+                          <td className="py-2 tabular-nums">{trial.absoluteErrorCm.toFixed(1)} cm ({trial.absoluteErrorPercent.toFixed(1)}%)</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <p className="mt-4 text-[10px] leading-4 text-zinc-600">
+              These observations are not an accuracy certification. Keep the same camera setup and measure from the lens to approximately the bridge of your nose. Results vary with head pose, zoom, framing and lighting. No images or video are stored.
+            </p>
           </section>
 
           <section className="panel rounded-3xl border-violet/20 p-5 sm:p-6">
