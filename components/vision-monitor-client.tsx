@@ -161,6 +161,24 @@ export function VisionMonitorClient() {
   }, [calibration]);
 
   useEffect(() => {
+    const handleProfileStorage = (event: StorageEvent) => {
+      if (event.key !== READING_PROFILE_STORAGE_KEY) return;
+      try {
+        const nextProfile = event.newValue
+          ? normalizeReadingProfile(JSON.parse(event.newValue))
+          : DEFAULT_READING_PROFILE;
+        setReadingProfile(nextProfile);
+        setProfileStatus("Reading profile updated from another tab");
+      } catch {
+        setProfileStatus("Could not read the updated Reading Lab profile");
+      }
+    };
+
+    window.addEventListener("storage", handleProfileStorage);
+    return () => window.removeEventListener("storage", handleProfileStorage);
+  }, []);
+
+  useEffect(() => {
     try {
       const savedProfile = window.localStorage.getItem(READING_PROFILE_STORAGE_KEY);
       if (savedProfile) setReadingProfile(normalizeReadingProfile(JSON.parse(savedProfile)));
@@ -342,12 +360,15 @@ export function VisionMonitorClient() {
                   distanceHistoryRef.current = history;
                   setDistanceEstimate(median(history));
                 } else {
+                  distanceHistoryRef.current = [];
                   setDistanceEstimate(null);
                 }
               } else {
+                distanceHistoryRef.current = [];
                 setDistanceEstimate(null);
               }
             } else {
+              distanceHistoryRef.current = [];
               setSnapshot(null);
               setDistanceEstimate(null);
               drawLandmarks(canvasRef.current, currentVideo.videoWidth, currentVideo.videoHeight, null);
