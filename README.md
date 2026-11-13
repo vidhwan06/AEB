@@ -1,10 +1,13 @@
 # AEB — Adaptive Eye Balance
 
-A web-based readability and display-adaptation prototype. The first release focuses on user-controlled reading presentation. Webcam-based viewing-condition estimation is a later milestone; this project does not diagnose vision or correct refractive errors.
+A web-based readability and display-adaptation prototype. The first release focuses on user-controlled reading presentation. Webcam-based viewing-condition estimation is an experimental, opt-in capability; this project does not diagnose vision or correct refractive errors.
 
 ## Requirements
 - Node.js 20.9+
 - npm
+- Chrome or Edge recommended for the local prototype
+- Webcam permission
+- HTTPS or localhost for camera access
 
 ## Run locally
 ```powershell
@@ -24,22 +27,27 @@ npm run build
 - Interactive Reading Lab
 - Live controls for font size, weight, line height, letter spacing, typeface, reading width and reading surface
 - Reading preview updates immediately
-- Explicit save and reset for a browser-local reading profile
-- Defensive validation of stored profile data
+- Explicit save and reset for browser-local reading profiles
+- Vision Monitor with explicit camera start/stop
+- MediaPipe Face Landmarker, one face at a time
+- Local face framing, head-angle heuristic and facial landmark overlay
+- Optional one-point viewing-distance calibration; only numeric calibration data is stored locally
 
-## Planned next
-1. Browser-based camera permission and clear tracking controls
-2. MediaPipe face landmark integration
-3. Calibrated, approximate viewing-distance estimation
-4. Conservative, user-controlled adaptation suggestions
-5. User testing to evaluate readability and comfort
+## Vision Monitor notes
+- Uses `@mediapipe/tasks-vision@1.2.3` and the official Face Landmarker float16 model.
+- The model and WASM runtime are downloaded from Google-hosted/CDN resources at runtime.
+- Face video frames are processed on-device and are not uploaded by AEB. MediaPipe SDK usage/performance metrics may be sent to Google; review the MediaPipe package privacy notice before deploying to users.
+- Detection runs at a throttled rate on the browser main thread in this prototype. A worker-based pipeline is a future performance improvement.
+- Head orientation is a coarse landmark heuristic, not precise pose estimation or gaze tracking.
+- Distance is a one-point proportional estimate based on apparent eye spacing. Camera zoom, camera position, resolution, face angle and measurement error affect it. Recalibrate after changing camera/framing.
+- The monitor does not measure eyesight, diagnose a condition, determine a prescription or correct refractive errors.
 
 ## Privacy principles
 - Camera permission must be explicit.
-- Process frames locally in the browser where feasible.
+- No microphone is requested.
+- Stop the camera when leaving the Vision Monitor.
 - Do not store or upload raw camera frames.
-- Provide a clear tracking-off state and manual override.
-- Reading preferences are stored in localStorage on the current browser only.
+- Calibration data is stored in localStorage on the current browser only.
 
 ## Scope
-AEB currently changes typography and presentation inside its own reading workspace. It does not control the operating system's global display, measure visual acuity, determine a prescription, or correct refractive errors.
+AEB currently changes typography and presentation inside its own reading workspace. It does not control the operating system's global display or provide optical correction.

@@ -14,13 +14,13 @@ export default function Home() {
             <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Your visual workspace</h1>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-zinc-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-300" /> Reading lab ready
+            <span className="h-2 w-2 rounded-full bg-emerald-300" /> Vision monitor available
           </div>
         </header>
 
         <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Vision tracking" value="Not active" note="Camera is not requested" />
-          <StatCard label="Reading profile" value="Customizable" note="Save preferences in Reading Lab" />
+          <StatCard label="Vision tracking" value="On demand" note="Starts only with camera permission" />
+          <StatCard label="Reading profile" value="Customizable" note="Saved locally in Reading Lab" />
           <StatCard label="Display mode" value="Manual" note="Live reading adjustments available" />
           <StatCard label="Session status" value="Ready" note="Local prototype environment" />
         </div>
@@ -46,11 +46,11 @@ export default function Home() {
                 {[
                   ["Interactive reading controls", "Implemented"],
                   ["Local preference storage", "Implemented"],
-                  ["Webcam vision engine", "Planned"],
+                  ["Face landmark monitor", "Available"],
                   ["Automatic adaptation", "Planned"]
                 ].map(([name, status], i) => (
                   <div key={name} className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3"><span className={`h-2 w-2 rounded-full ${i < 2 ? "bg-emerald-300" : "bg-zinc-700"}`}/><span className="text-xs text-zinc-300">{name}</span></div>
+                    <div className="flex items-center gap-3"><span className={`h-2 w-2 rounded-full ${i < 3 ? "bg-emerald-300" : "bg-zinc-700"}`}/><span className="text-xs text-zinc-300">{name}</span></div>
                     <span className="text-[10px] text-zinc-500">{status}</span>
                   </div>
                 ))}
@@ -58,8 +58,8 @@ export default function Home() {
             </div>
             <div className="rounded-3xl border border-violet/15 bg-gradient-to-br from-violet/[.13] to-transparent p-6 shadow-glow">
               <div className="flex items-center gap-2 text-sm font-medium"><Waves size={17} className="text-violet"/> Built around you</div>
-              <p className="mt-3 text-sm leading-6 text-zinc-400">This milestone is focused on user-controlled readability. Webcam-based viewing-condition estimates will be added only after the reading controls work reliably.</p>
-              <div className="mt-5 flex items-center gap-2 text-xs text-violet"><Focus size={14}/> Personalization-first design</div>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">AEB now includes an opt-in vision monitor. It observes approximate face geometry; it does not infer your prescription or where you are looking.</p>
+              <Link href="/vision-monitor" className="mt-5 inline-flex items-center gap-2 text-xs font-medium text-violet hover:text-white">Open vision monitor <ArrowUpRight size={14}/></Link>
             </div>
           </div>
         </div>

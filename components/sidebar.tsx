@@ -4,7 +4,7 @@ import { Activity, BookOpen, Eye, Gauge, Settings2, Sparkles } from "lucide-reac
 const links = [
   { label: "Overview", href: "/", icon: Gauge, key: "overview", available: true },
   { label: "Reading lab", href: "/reading-lab", icon: BookOpen, key: "reading-lab", available: true },
-  { label: "Vision monitor", href: "#", icon: Eye, key: "vision-monitor", available: false },
+  { label: "Vision monitor", href: "/vision-monitor", icon: Eye, key: "vision-monitor", available: true },
   { label: "Calibration", href: "#", icon: Activity, key: "calibration", available: false },
   { label: "Preferences", href: "#", icon: Settings2, key: "preferences", available: false }
 ];
@@ -50,7 +50,7 @@ export function Sidebar({ activePath = "overview" }: { activePath?: string }) {
 
       <div className="mt-auto rounded-2xl border border-violet/15 bg-violet/[.06] p-4">
         <div className="mb-2 flex items-center gap-2 text-xs font-medium text-violet"><Sparkles size={14}/> Prototype mode</div>
-        <p className="text-xs leading-5 text-zinc-400">AEB currently adapts reading content inside this workspace. Vision tracking is a separate upcoming milestone.</p>
+        <p className="text-xs leading-5 text-zinc-400">Vision Monitor performs local face-landmark analysis after you explicitly start the camera.</p>
       </div>
       <div className="mt-5 flex items-center gap-3 px-2">
         <div className="grid h-8 w-8 place-items-center rounded-full bg-zinc-800 text-xs font-semibold">U</div>
