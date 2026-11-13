@@ -529,6 +529,36 @@ export function VisionMonitorClient() {
     }
   }, [canRecordValidation, distanceEstimate, measuredDistanceInput, validationCondition, validationTrials]);
 
+  const exportValidationCsv = useCallback(() => {
+    if (validationTrials.length === 0) return;
+    const columns = [
+      "recorded_at",
+      "condition",
+      "measured_distance_cm",
+      "estimated_distance_cm",
+      "absolute_error_cm",
+      "absolute_error_percent",
+    ];
+    const rows = validationTrials.map((trial) => [
+      trial.recordedAt,
+      trial.condition,
+      trial.measuredDistanceCm,
+      trial.estimatedDistanceCm,
+      trial.absoluteErrorCm,
+      trial.absoluteErrorPercent,
+    ]);
+    const csv = [columns, ...rows]
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+      .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "aeb-distance-validation.csv";
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+  }, [validationTrials]);
+
   const clearValidationTrials = useCallback(() => {
     try {
       window.localStorage.removeItem(DISTANCE_VALIDATION_STORAGE_KEY);
@@ -775,7 +805,10 @@ export function VisionMonitorClient() {
               <div className="mt-5">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="text-xs font-medium text-zinc-300">Recent measurements</div>
-                  <button type="button" onClick={clearValidationTrials} className="text-[10px] text-zinc-500 underline underline-offset-4 hover:text-white">Clear history</button>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={exportValidationCsv} className="text-[10px] text-violet underline underline-offset-4 hover:text-white">Export CSV</button>
+                    <button type="button" onClick={clearValidationTrials} className="text-[10px] text-zinc-500 underline underline-offset-4 hover:text-white">Clear history</button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[420px] text-left text-[11px]">
@@ -802,7 +835,7 @@ export function VisionMonitorClient() {
               </div>
             )}
             <p className="mt-4 text-[10px] leading-4 text-zinc-600">
-              These observations are not an accuracy certification. Keep the same camera setup and measure from the lens to approximately the bridge of your nose. Results vary with head pose, zoom, framing and lighting. No images or video are stored.
+              These observations are not an accuracy certification. Aim for at least 10 trials per condition across several distances. Keep the same camera setup and measure from the lens to approximately the bridge of your nose. Results vary with head pose, zoom, framing and lighting. No images or video are stored.
             </p>
           </section>
 

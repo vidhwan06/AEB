@@ -80,7 +80,9 @@ export function isDistanceValidationTrial(value: unknown): value is DistanceVali
     typeof candidate.absoluteErrorCm === "number" &&
     Number.isFinite(candidate.absoluteErrorCm) &&
     typeof candidate.absoluteErrorPercent === "number" &&
-    Number.isFinite(candidate.absoluteErrorPercent)
+    Number.isFinite(candidate.absoluteErrorPercent) &&
+    Math.abs(candidate.absoluteErrorCm - Math.abs(candidate.estimatedDistanceCm - candidate.measuredDistanceCm)) < 1e-6 &&
+    Math.abs(candidate.absoluteErrorPercent - (candidate.absoluteErrorCm / candidate.measuredDistanceCm) * 100) < 1e-6
   );
 }
 

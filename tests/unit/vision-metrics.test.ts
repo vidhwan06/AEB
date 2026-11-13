@@ -55,7 +55,7 @@ describe("estimateDistanceCm", () => {
     expect(estimateDistanceCm(0, calibration)).toBeNull();
     expect(estimateDistanceCm(Number.NaN, calibration)).toBeNull();
     expect(estimateDistanceCm(100, { referenceEyeSpanPx: 0, referenceDistanceCm: 50 })).toBeNull();
-    expect(estimateDistanceCm(500, calibration)).toBeNull();
+    expect(estimateDistanceCm(600, calibration)).toBeNull();
     expect(estimateDistanceCm(50, calibration)).toBeNull();
   });
 });

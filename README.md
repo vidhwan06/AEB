@@ -3,7 +3,7 @@
 A web-based readability and display-adaptation prototype. The first release focuses on user-controlled reading presentation. Webcam-based viewing-condition estimation is an experimental, opt-in capability; this project does not diagnose vision or correct refractive errors.
 
 ## Requirements
-- Node.js 20.9+
+- Node.js 22.12 or newer (required by the current Vitest 5 toolchain)
 - npm
 - Chrome or Edge recommended for the local prototype
 - Webcam permission
@@ -18,27 +18,33 @@ Open http://localhost:3000.
 
 ## Quality checks
 ```powershell
+npm test
 npm run lint
 npm run build
 ```
 
 ## Implemented
 - Premium dark product workspace
-- Interactive Reading Lab
-- Live controls for font size, weight, line height, letter spacing, typeface, reading width and reading surface
-- Reading preview updates immediately
-- Explicit save and reset for browser-local reading profiles
-- Vision Monitor with explicit camera start/stop
-- MediaPipe Face Landmarker, one face at a time
-- Local face framing, head-angle heuristic and facial landmark overlay
-- Optional one-point viewing-distance calibration with the reference Reading Lab font size saved locally
-- Distance-aware font-size suggestions, gated by centered/front-facing/level tracking, capped to ±2px from the calibrated baseline, and applied only after an explicit user click
-- Cross-tab synchronization of saved Reading Lab settings\n- Local distance validation log with mean absolute error, mean percentage error and within-10% summary\n- Unit tests for face geometry, distance calculation, adaptive suggestion rules, profile normalization and validation metrics
+- Interactive Reading Lab and browser-local reading preferences
+- Webcam Vision Monitor with explicit start/stop and local face-landmark processing
+- One-point measured viewing-distance calibration
+- Distance-aware text-size suggestions, requiring explicit user approval
+- Cross-tab synchronization of saved Reading Lab settings
+- Local distance validation log with mean absolute error, mean percentage error and within-10% summary
+- CSV export of user-entered validation trials
+- Unit tests for face geometry, distance calculation, adaptive suggestion rules, profile normalization and validation metrics
 
-## Distance validation\n\n- The Vision Monitor trial log compares a live estimate with a ruler measurement.\n- Record repeat measurements at multiple distances and conditions while maintaining centered, forward-facing, level head position.\n- Error summaries describe only entered trials; they are not device accuracy certification.\n- Validation data stays in browser localStorage and is not uploaded.\n\n## Vision Monitor notes
-- Uses `@mediapipe/tasks-vision@1.2.3` and the official Face Landmarker float16 model.
+## Distance validation
+- Compare the Vision Monitor estimate with a tape-measure reading from the webcam lens to approximately the bridge of your nose.
+- Record repeat measurements at multiple distances and conditions while maintaining centered, forward-facing, level head position.
+- Aim for at least 10 trials per condition. Use the same camera, resolution, zoom and camera position within each calibration set.
+- Error summaries describe only the trials you enter; they are not device accuracy certification.
+- Validation data stays in browser localStorage and is not uploaded.
+
+## Vision Monitor notes
+- Uses `@mediapipe/tasks-vision@1.2.3` and the Face Landmarker float16 model.
 - The model and WASM runtime are downloaded from Google-hosted/CDN resources at runtime.
-- Face video frames are processed on-device and are not uploaded by AEB. MediaPipe SDK usage/performance metrics may be sent to Google; review the MediaPipe package privacy notice before deploying to users.
+- Face video frames are processed on-device and are not uploaded by AEB. MediaPipe SDK usage/performance metrics may be sent to Google; review the package privacy notice before deploying to users.
 - Detection runs at a throttled rate on the browser main thread in this prototype. A worker-based pipeline is a future performance improvement.
 - Head orientation is a coarse landmark heuristic, not precise pose estimation or gaze tracking.
 - Distance is a one-point proportional estimate based on apparent eye spacing. Camera zoom, camera position, resolution, face angle and measurement error affect it. Recalibrate after changing camera/framing.
@@ -49,7 +55,7 @@ npm run build
 - No microphone is requested.
 - Stop the camera when leaving the Vision Monitor.
 - Do not store or upload raw camera frames.
-- Calibration data is stored in localStorage on the current browser only.
+- Calibration and validation data are stored in localStorage on the current browser only.
 
 ## Scope
 AEB currently changes typography and presentation inside its own reading workspace. It does not control the operating system's global display or provide optical correction.

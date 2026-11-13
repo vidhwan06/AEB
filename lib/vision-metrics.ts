@@ -107,7 +107,8 @@ export function estimateDistanceCm(
     !Number.isFinite(calibration.referenceEyeSpanPx) ||
     calibration.referenceEyeSpanPx <= 0 ||
     !Number.isFinite(calibration.referenceDistanceCm) ||
-    calibration.referenceDistanceCm <= 0
+    calibration.referenceDistanceCm < 20 ||
+    calibration.referenceDistanceCm > 150
   ) {
     return null;
   }
