@@ -155,9 +155,9 @@ export function ReadingLabClient() {
           <button type="button" onClick={resetProfile} className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs text-zinc-300 transition hover:bg-white/[.05]">
             <RotateCcw size={14}/> Reset
           </button>
-          <button type="button" onClick={saveProfile} disabled={!hydrated || !isDirty} className="inline-flex items-center gap-2 rounded-xl bg-violet px-4 py-2.5 text-xs font-semibold text-[#100d1c] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">
-            {isDirty ? <Save size={14}/> : <Check size={14}/>}
-            {isDirty ? "Save profile" : "Saved"}
+          <button type="button" onClick={saveProfile} disabled={!hydrated} className="inline-flex items-center gap-2 rounded-xl bg-violet px-4 py-2.5 text-xs font-semibold text-[#100d1c] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">
+            {status === "Profile saved on this device" || status === "Saved profile restored" ? <Check size={14}/> : <Save size={14}/>}
+            {isDirty || (status !== "Profile saved on this device" && status !== "Saved profile restored") ? "Save profile" : "Saved"}
           </button>
         </div>
       </header>
