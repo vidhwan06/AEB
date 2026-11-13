@@ -33,9 +33,9 @@ npm run build
 - Local face framing, head-angle heuristic and facial landmark overlay
 - Optional one-point viewing-distance calibration with the reference Reading Lab font size saved locally
 - Distance-aware font-size suggestions, gated by centered/front-facing/level tracking, capped to ±2px from the calibrated baseline, and applied only after an explicit user click
-- Cross-tab synchronization of saved Reading Lab settings
+- Cross-tab synchronization of saved Reading Lab settings\n- Local distance validation log with mean absolute error, mean percentage error and within-10% summary\n- Unit tests for face geometry, distance calculation, adaptive suggestion rules, profile normalization and validation metrics
 
-## Vision Monitor notes
+## Distance validation\n\n- The Vision Monitor trial log compares a live estimate with a ruler measurement.\n- Record repeat measurements at multiple distances and conditions while maintaining centered, forward-facing, level head position.\n- Error summaries describe only entered trials; they are not device accuracy certification.\n- Validation data stays in browser localStorage and is not uploaded.\n\n## Vision Monitor notes
 - Uses `@mediapipe/tasks-vision@1.2.3` and the official Face Landmarker float16 model.
 - The model and WASM runtime are downloaded from Google-hosted/CDN resources at runtime.
 - Face video frames are processed on-device and are not uploaded by AEB. MediaPipe SDK usage/performance metrics may be sent to Google; review the MediaPipe package privacy notice before deploying to users.
