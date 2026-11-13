@@ -601,7 +601,7 @@ export function VisionMonitorClient() {
               <button
                 type="button"
                 onClick={calibrateDistance}
-                disabled={cameraState !== "active" || !snapshot || snapshot.framing !== "Centered" || snapshot.headTurn !== "Facing camera"}
+                disabled={cameraState !== "active" || !snapshot || snapshot.framing !== "Centered" || snapshot.headTurn !== "Facing camera" || snapshot.headTilt !== "Level"}
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet/30 bg-violet/[.09] px-3 py-2.5 text-xs font-semibold text-violet transition hover:bg-violet/[.15] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <CheckCircle2 size={14}/> Save reference calibration

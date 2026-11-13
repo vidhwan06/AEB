@@ -31,7 +31,9 @@ npm run build
 - Vision Monitor with explicit camera start/stop
 - MediaPipe Face Landmarker, one face at a time
 - Local face framing, head-angle heuristic and facial landmark overlay
-- Optional one-point viewing-distance calibration; only numeric calibration data is stored locally
+- Optional one-point viewing-distance calibration with the reference Reading Lab font size saved locally
+- Distance-aware font-size suggestions, gated by centered/front-facing/level tracking, capped to ±2px from the calibrated baseline, and applied only after an explicit user click
+- Cross-tab synchronization of saved Reading Lab settings
 
 ## Vision Monitor notes
 - Uses `@mediapipe/tasks-vision@1.2.3` and the official Face Landmarker float16 model.
