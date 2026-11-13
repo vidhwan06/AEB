@@ -6,7 +6,7 @@ import { ArrowLeft, BookOpen, Check, RotateCcw, Save, SlidersHorizontal, Sparkle
 import {
   DEFAULT_READING_PROFILE,
   normalizeReadingProfile,
-  READING_PROFILE_READING_PROFILE_STORAGE_KEY,
+  READING_PROFILE_STORAGE_KEY,
   type FontFamily,
   type FontWeight,
   type ReadingProfile,
