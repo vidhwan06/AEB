@@ -12,6 +12,8 @@ export type ReadingProfile = {
   theme: ReadingTheme;
 };
 
+export const READING_PROFILE_STORAGE_KEY = "aeb-reading-profile-v1";
+
 export const DEFAULT_READING_PROFILE: ReadingProfile = {
   fontSize: 19,
   fontWeight: "400",

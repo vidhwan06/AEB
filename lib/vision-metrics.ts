@@ -3,6 +3,8 @@ export type Landmark = { x: number; y: number; z?: number };
 export type DistanceCalibration = {
   referenceEyeSpanPx: number;
   referenceDistanceCm: number;
+  /** Reading font size captured at the user's reference distance. */
+  baselineFontSize?: number;
 };
 
 export type VisionSnapshot = {

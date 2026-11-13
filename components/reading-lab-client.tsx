@@ -6,13 +6,12 @@ import { ArrowLeft, BookOpen, Check, RotateCcw, Save, SlidersHorizontal, Sparkle
 import {
   DEFAULT_READING_PROFILE,
   normalizeReadingProfile,
+  READING_PROFILE_READING_PROFILE_STORAGE_KEY,
   type FontFamily,
   type FontWeight,
   type ReadingProfile,
   type ReadingTheme,
 } from "@/lib/reading-profile";
-
-const STORAGE_KEY = "aeb-reading-profile-v1";
 
 const themes: { id: ReadingTheme; label: string; description: string; swatches: string[] }[] = [
   { id: "paper", label: "Warm paper", description: "Soft, warm reading surface", swatches: ["#F4F0E8", "#292820"] },
@@ -97,8 +96,24 @@ export function ReadingLabClient() {
   const [status, setStatus] = useState("Default settings");
 
   useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== READING_PROFILE_STORAGE_KEY) return;
+      try {
+        setProfile(event.newValue ? normalizeReadingProfile(JSON.parse(event.newValue)) : DEFAULT_READING_PROFILE);
+        setIsDirty(false);
+        setStatus(event.newValue ? "Updated from Vision Monitor" : "Defaults restored in another tab");
+      } catch {
+        setStatus("Could not read the updated profile");
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
+      const stored = window.localStorage.getItem(READING_PROFILE_STORAGE_KEY);
       if (stored) {
         setProfile(normalizeReadingProfile(JSON.parse(stored)));
         setStatus("Saved profile restored");
@@ -118,7 +133,7 @@ export function ReadingLabClient() {
 
   function saveProfile() {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      window.localStorage.setItem(READING_PROFILE_STORAGE_KEY, JSON.stringify(profile));
       setIsDirty(false);
       setStatus("Profile saved on this device");
     } catch {
@@ -130,7 +145,7 @@ export function ReadingLabClient() {
     setProfile(DEFAULT_READING_PROFILE);
     setIsDirty(false);
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(READING_PROFILE_STORAGE_KEY);
       setStatus("Default settings restored");
     } catch {
       setStatus("Defaults restored for this session");

@@ -13,12 +13,21 @@ import {
   LockKeyhole,
   Ruler,
   ShieldCheck,
+  Sparkles,
   Video,
 } from "lucide-react";
 import {
   FaceLandmarker,
   FilesetResolver,
 } from "@mediapipe/tasks-vision";
+import {
+  DEFAULT_READING_PROFILE,
+  normalizeReadingProfile,
+  READING_PROFILE_STORAGE_KEY,
+  type ReadingProfile,
+} from "@/lib/reading-profile";
+import { getAdaptiveSuggestion } from "@/lib/adaptive-controller";
+import Link from "next/link";
 import {
   estimateDistanceCm,
   getVisionSnapshot,
@@ -145,6 +154,7 @@ export function VisionMonitorClient() {
   const [referenceDistanceInput, setReferenceDistanceInput] = useState("55");
   const [profileStatus, setProfileStatus] = useState("Not calibrated");
   const [distanceEstimate, setDistanceEstimate] = useState<number | null>(null);
+  const [readingProfile, setReadingProfile] = useState<ReadingProfile>(DEFAULT_READING_PROFILE);
 
   useEffect(() => {
     calibrationRef.current = calibration;
@@ -152,6 +162,9 @@ export function VisionMonitorClient() {
 
   useEffect(() => {
     try {
+      const savedProfile = window.localStorage.getItem(READING_PROFILE_STORAGE_KEY);
+      if (savedProfile) setReadingProfile(normalizeReadingProfile(JSON.parse(savedProfile)));
+
       const stored = window.localStorage.getItem(CALIBRATION_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as DistanceCalibration;
@@ -374,6 +387,7 @@ export function VisionMonitorClient() {
     const nextCalibration: DistanceCalibration = {
       referenceEyeSpanPx: snapshot.eyeSpanPx,
       referenceDistanceCm: measuredDistance,
+      baselineFontSize: readingProfile.fontSize,
     };
 
     try {
@@ -384,7 +398,7 @@ export function VisionMonitorClient() {
     } catch {
       setProfileStatus("Could not save calibration in this browser");
     }
-  }, [referenceDistanceInput, snapshot]);
+  }, [readingProfile.fontSize, referenceDistanceInput, snapshot]);
 
   const clearCalibration = useCallback(() => {
     try {
@@ -397,6 +411,34 @@ export function VisionMonitorClient() {
       setProfileStatus("Could not clear local calibration");
     }
   }, []);
+
+  const applyAdaptiveSuggestion = useCallback(() => {
+    if (distanceEstimate === null) return;
+    const suggestion = getAdaptiveSuggestion(
+      distanceEstimate,
+      calibration,
+      readingProfile,
+      snapshot,
+    );
+    if (!suggestion) return;
+
+    const nextProfile = normalizeReadingProfile({
+      ...readingProfile,
+      fontSize: suggestion.suggestedFontSize,
+    });
+
+    try {
+      window.localStorage.setItem(READING_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
+      setReadingProfile(nextProfile);
+      setProfileStatus("Adaptive text size saved to your Reading Lab profile");
+    } catch {
+      setProfileStatus("Could not save the adaptive suggestion in this browser");
+    }
+  }, [calibration, distanceEstimate, readingProfile, snapshot]);
+
+  const adaptiveSuggestion = distanceEstimate === null
+    ? null
+    : getAdaptiveSuggestion(distanceEstimate, calibration, readingProfile, snapshot);
 
   const faceValue = cameraState !== "active"
     ? "Camera inactive"
@@ -550,6 +592,62 @@ export function VisionMonitorClient() {
               <div className="text-[11px] text-zinc-500">{calibration ? `Reference: ${calibration.referenceDistanceCm} cm` : "No reference saved"}</div>
               <button type="button" onClick={clearCalibration} disabled={!calibration} className="text-[11px] text-zinc-400 underline decoration-white/20 underline-offset-4 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35">Clear calibration</button>
             </div>
+          </section>
+
+          <section className="panel rounded-3xl border-violet/20 p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet/10 text-violet"><Sparkles size={18}/></div>
+              <div>
+                <h2 className="text-sm font-semibold">Adaptive reading suggestion</h2>
+                <p className="mt-1 text-[11px] text-zinc-500">Distance-aware text sizing · approval required</p>
+              </div>
+            </div>
+
+            {!calibration ? (
+              <p className="mt-4 text-xs leading-5 text-zinc-400">Calibrate your preferred viewing distance first. AEB will capture the current Reading Lab font size as the reference.</p>
+            ) : calibration.baselineFontSize === undefined ? (
+              <p className="mt-4 text-xs leading-5 text-zinc-400">This calibration predates adaptive sizing. Clear it and recalibrate after choosing your preferred Reading Lab font size.</p>
+            ) : cameraState !== "active" ? (
+              <p className="mt-4 text-xs leading-5 text-zinc-400">Start the camera to receive a live suggestion. No settings will change automatically.</p>
+            ) : !snapshot ? (
+              <p className="mt-4 text-xs leading-5 text-zinc-400">Keep your face in frame while AEB collects a stable reading-distance estimate.</p>
+            ) : snapshot.framing !== "Centered" || snapshot.headTurn !== "Facing camera" || snapshot.headTilt !== "Level" ? (
+              <p className="mt-4 text-xs leading-5 text-zinc-400">For a more consistent estimate, center your face and look straight toward the camera.</p>
+            ) : distanceEstimate === null ? (
+              <p className="mt-4 text-xs leading-5 text-zinc-400">Waiting for a calibrated distance estimate.</p>
+            ) : adaptiveSuggestion ? (
+              <>
+                <div className="mt-4 rounded-2xl border border-violet/20 bg-violet/[.06] p-4">
+                  <div className="text-[10px] uppercase tracking-[.16em] text-violet">Optional adjustment</div>
+                  <div className="mt-2 flex flex-wrap items-baseline gap-2">
+                    <span className="text-2xl font-semibold">{adaptiveSuggestion.currentFontSize}px</span>
+                    <span className="text-sm text-zinc-500">→</span>
+                    <span className="text-2xl font-semibold text-violet">{adaptiveSuggestion.suggestedFontSize}px</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-zinc-400">
+                    You are {Math.abs(adaptiveSuggestion.distanceChangePercent).toFixed(0)}% {adaptiveSuggestion.distanceChangePercent > 0 ? "farther from" : "closer to"} your calibrated distance. This small change aims to maintain a similar apparent text size.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={applyAdaptiveSuggestion}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet px-4 py-3 text-xs font-semibold text-[#100d1c] transition hover:brightness-110"
+                >
+                  <CheckCircle2 size={14}/> Apply suggestion
+                </button>
+              </>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-300/[.05] p-4">
+                <div className="flex items-center gap-2 text-xs font-medium text-emerald-200"><CheckCircle2 size={14}/> No adjustment needed</div>
+                <p className="mt-2 text-xs leading-5 text-zinc-400">Your current viewing distance is near the calibration reference, or your Reading Lab profile already uses the suggested size.</p>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/[.07] pt-3">
+              <span className="text-[10px] text-zinc-500">Current Reading Lab size: {readingProfile.fontSize}px</span>
+              <Link href="/reading-lab" className="text-[11px] font-medium text-violet hover:text-white">Open Reading Lab →</Link>
+            </div>
+            <p className="mt-3 text-[10px] leading-4 text-zinc-600">Experimental sizing heuristic, limited to ±2px from your calibration baseline. It does not measure eyesight and never applies changes without your click.</p>
           </section>
 
           <section className="panel rounded-3xl p-5 sm:p-6">
