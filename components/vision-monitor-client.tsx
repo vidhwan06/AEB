@@ -225,7 +225,6 @@ export function VisionMonitorClient() {
     setSnapshot(null);
     setDistanceEstimate(null);
     distanceHistoryRef.current = [];
-    setProfileStatus((current) => current);
 
     let localStream: MediaStream | null = null;
     let localLandmarker: FaceLandmarker | null = null;
@@ -485,10 +484,9 @@ export function VisionMonitorClient() {
                 <button
                   type="button"
                   onClick={cameraState === "starting" ? stopCamera : startCamera}
-                  disabled={cameraState === "starting"}
                   className="inline-flex items-center gap-2 rounded-xl bg-violet px-4 py-2.5 text-xs font-semibold text-[#100d1c] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
                 >
-                  <Camera size={14}/>{cameraState === "starting" ? "Starting camera…" : "Start camera"}
+                  <Camera size={14}/>{cameraState === "starting" ? "Cancel setup" : "Start camera"}
                 </button>
               )}
             </div>
