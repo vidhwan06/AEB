@@ -67,13 +67,16 @@ export function getVisionSnapshot(
   }
 
   // Nose displacement relative to eye spacing is a rough head-turn cue only.
-  const noseOffset = Math.abs(nose.x - eyeMidpoint.x) / Math.max(rightEye.x - leftEye.x, 0.001);
+  const noseOffset = Math.abs(nose.x - eyeMidpoint.x) / Math.max(Math.abs(rightEye.x - leftEye.x), 0.001);
   const headTurn = noseOffset > 0.13 ? "Slightly turned" : "Facing camera";
 
-  const tiltDegrees = Math.atan2(
+  let tiltDegrees = Math.atan2(
     (rightEye.y - leftEye.y) * frameHeight,
     (rightEye.x - leftEye.x) * frameWidth,
   ) * (180 / Math.PI);
+  // Normalize the eye-line angle so reversed landmark ordering does not read as a 180-degree tilt.
+  if (tiltDegrees > 90) tiltDegrees -= 180;
+  if (tiltDegrees < -90) tiltDegrees += 180;
 
   return {
     centerX,
