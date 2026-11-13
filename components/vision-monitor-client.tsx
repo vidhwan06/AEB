@@ -136,6 +136,7 @@ export function VisionMonitorClient() {
   const lastDetectionRef = useRef(0);
   const lastVideoTimeRef = useRef(-1);
   const distanceHistoryRef = useRef<number[]>([]);
+  const calibrationRef = useRef<DistanceCalibration | null>(null);
 
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -144,6 +145,10 @@ export function VisionMonitorClient() {
   const [referenceDistanceInput, setReferenceDistanceInput] = useState("55");
   const [profileStatus, setProfileStatus] = useState("Not calibrated");
   const [distanceEstimate, setDistanceEstimate] = useState<number | null>(null);
+
+  useEffect(() => {
+    calibrationRef.current = calibration;
+  }, [calibration]);
 
   useEffect(() => {
     try {
@@ -312,10 +317,11 @@ export function VisionMonitorClient() {
                 nextSnapshot ? landmarks : null,
               );
 
-              if (nextSnapshot && calibration) {
+              const activeCalibration = calibrationRef.current;
+              if (nextSnapshot && activeCalibration) {
                 const nextDistance = estimateDistanceCm(
                   nextSnapshot.eyeSpanPx,
-                  calibration,
+                  activeCalibration,
                 );
 
                 if (nextDistance !== null) {
@@ -356,7 +362,7 @@ export function VisionMonitorClient() {
         setErrorMessage(describeCameraError(error));
       }
     }
-  }, [calibration, cameraState, releaseResources]);
+  }, [cameraState, releaseResources]);
 
   const calibrateDistance = useCallback(() => {
     const measuredDistance = Number(referenceDistanceInput);
@@ -532,7 +538,7 @@ export function VisionMonitorClient() {
               <button
                 type="button"
                 onClick={calibrateDistance}
-                disabled={cameraState !== "active" || !snapshot}
+                disabled={cameraState !== "active" || !snapshot || snapshot.framing !== "Centered" || snapshot.headTurn !== "Facing camera"}
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet/30 bg-violet/[.09] px-3 py-2.5 text-xs font-semibold text-violet transition hover:bg-violet/[.15] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <CheckCircle2 size={14}/> Save reference calibration
